@@ -1,0 +1,45 @@
+
+services:
+  consul:
+    image: consul:latest
+    container_name: consul
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    command: consul agent -dev -client=0.0.0.0
+    networks:
+      - consul-network
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  consul-mcp-server:
+    build: .
+    container_name: consul-mcp-server
+    ports:
+      - "8080:8080"
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - PORT=8080
+      - HOST=0.0.0.0
+    depends_on:
+      consul:
+        condition: service_healthy
+    networks:
+      - consul-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  consul-network:
+    driver: bridge
+
