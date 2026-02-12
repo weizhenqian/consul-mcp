@@ -48,6 +48,37 @@ def get_tool_definitions() -> List[Tool]:
             }
         ),
         Tool(
+            name="get_service_instance_count",
+            description="Get only the number of instances for a service (lightweight; use this for statistics/summary to avoid large responses)",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "service_name": {
+                        "type": "string",
+                        "description": "Name of the service"
+                    },
+                    "datacenter": {
+                        "type": "string",
+                        "description": "Datacenter to query (optional)"
+                    }
+                },
+                "required": ["service_name"]
+            }
+        ),
+        Tool(
+            name="get_monitoring_summary",
+            description="Get monitoring statistics: per-service instance counts and totals. Use this for counting monitoring entries (e.g. node_exporter, redis_exporter) without loading full instance lists. Returns only counts to avoid context overflow.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "datacenter": {
+                        "type": "string",
+                        "description": "Datacenter to query (optional)"
+                    }
+                }
+            }
+        ),
+        Tool(
             name="register_service",
             description="Register a new service in Consul",
             inputSchema={
@@ -328,6 +359,10 @@ class ToolHandler:
                 return await self._handle_list_services(arguments)
             elif name == "get_service":
                 return await self._handle_get_service(arguments)
+            elif name == "get_service_instance_count":
+                return await self._handle_get_service_instance_count(arguments)
+            elif name == "get_monitoring_summary":
+                return await self._handle_get_monitoring_summary(arguments)
             elif name == "register_service":
                 return await self._handle_register_service(arguments)
             elif name == "deregister_service":
@@ -401,6 +436,28 @@ class ToolHandler:
                 "instances": nodes,
                 "count": len(nodes)
             }, indent=2, default=str)
+        )]
+
+    async def _handle_get_service_instance_count(self, arguments: Dict[str, Any]) -> List[TextContent]:
+        """Handle get_service_instance_count tool call (lightweight, for statistics)."""
+        service_name = arguments.get("service_name")
+        dc = arguments.get("datacenter")
+        count = self.consul_client.get_service_instance_count(service_name, dc)
+        return [TextContent(
+            type="text",
+            text=json.dumps({
+                "service": service_name,
+                "count": count
+            }, indent=2)
+        )]
+
+    async def _handle_get_monitoring_summary(self, arguments: Dict[str, Any]) -> List[TextContent]:
+        """Handle get_monitoring_summary: return per-service instance counts and totals only (no instance details)."""
+        dc = arguments.get("datacenter")
+        summary = self.consul_client.get_services_summary(dc)
+        return [TextContent(
+            type="text",
+            text=json.dumps(summary, indent=2)
         )]
     
     async def _handle_register_service(self, arguments: Dict[str, Any]) -> List[TextContent]:

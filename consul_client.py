@@ -83,7 +83,41 @@ class ConsulClient:
         except Exception as e:
             logger.error(f"Error getting service '{service_name}': {e}", exc_info=True)
             raise
-    
+
+    def get_service_instance_count(self, service_name: str, datacenter: Optional[str] = None) -> int:
+        """Get only the instance count for a service (lightweight, for statistics)."""
+        logger.debug(f"Getting instance count for service '{service_name}' (datacenter={datacenter})")
+        try:
+            index, nodes = self.client.catalog.service(service_name, dc=datacenter)
+            count = len(nodes)
+            logger.info(f"Service '{service_name}' has {count} instances")
+            return count
+        except Exception as e:
+            logger.error(f"Error getting count for service '{service_name}': {e}", exc_info=True)
+            raise
+
+    def get_services_summary(self, datacenter: Optional[str] = None) -> Dict[str, Any]:
+        """Get summary of all services: service name -> instance count. Lightweight for monitoring stats (no instance details)."""
+        logger.debug(f"Getting services summary (datacenter={datacenter})")
+        try:
+            names = self.list_services(datacenter)
+            summary: Dict[str, int] = {}
+            total_instances = 0
+            for name in names:
+                cnt = self.get_service_instance_count(name, datacenter)
+                summary[name] = cnt
+                total_instances += cnt
+            result = {
+                "services": summary,
+                "total_services": len(summary),
+                "total_instances": total_instances,
+            }
+            logger.info(f"Services summary: {result['total_services']} services, {result['total_instances']} total instances")
+            return result
+        except Exception as e:
+            logger.error(f"Error getting services summary: {e}", exc_info=True)
+            raise
+
     def register_service(
         self,
         name: str,

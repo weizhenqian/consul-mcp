@@ -129,6 +129,8 @@ The server provides the following MCP tools for Consul operations:
 
 - **`list_services`**: List all services registered in Consul
 - **`get_service`**: Get detailed information about a specific service
+- **`get_service_instance_count`**: Get only the instance count for one service (lightweight, for statistics)
+- **`get_monitoring_summary`**: Get monitoring statistics: per-service instance counts and totals without full instance data. **Use this for counting monitoring entries (e.g. Prometheus discovery) to avoid context overflow.**
 - **`register_service`**: Register a new service in Consul
 - **`deregister_service`**: Deregister a service from Consul
 - **`get_service_health`**: Get health status of a service
@@ -160,7 +162,14 @@ The server provides MCP resources for accessing Consul data. See `mcp_resources.
 
 ## MCP Prompts
 
-The server provides MCP prompts for common Consul operations. See `mcp_prompts.py` for available prompts.
+The server provides MCP prompts for common Consul operations:
+
+- **`service_discovery`**: Discover and list services (optional datacenter).
+- **`service_health_check`**: Check health status of a service (service_name, optional datacenter).
+- **`monitoring_summary`**: Get monitoring statistics (per-service instance counts and totals). Use for counting monitoring entries without loading full instance lists.
+- **`monitoring_agent_instructions`**: Get system instructions for the monitoring AI agent (how to use summary tools to avoid context overflow).
+
+For a copy-paste prompt to configure your monitoring AI agent, see **`prompts/monitoring_agent_instructions.md`**.
 
 ## Usage Examples
 
